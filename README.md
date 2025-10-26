@@ -1,58 +1,191 @@
-# wix-package
-使用 wix 打包 compose-desktop 生成的 application image 生成 msi 安装包。
+# WiX Compose Desktop Plugin
 
-compose desktop 默认的打包插件有一些问题：
-- 不能设置单独快捷方式的名称，有一些 windows 用户的安装目录不能有中文字符，但是又需要把快捷方式设置成中文的。
-- 比如卸载软件的时候可能会误删文件，如果操作失误把软件安装到了 `D:\Program Files` 而不是 `D:\Program Files\productName` 卸载的时候会把 `D:\Program Files` 下的所有文件都删除掉。
+一个 Gradle 插件，用于使用 WiX 工具集打包 Compose Desktop 应用程序，生成专业的 Windows MSI 安装包。
 
-compose desktop 的打包插件使用的是 jpackage, jpackage 在 windows 系统底层依赖 wix，编写 Wix 脚本可以解决上述问题。
-compose desktop 插件在执行 `createDistributable` 任务时会自动下载 wix 的安装包到 `build\wix311` 目录下。
+## 特性
 
-这个脚本的打包思路是：
-1. 先使用 compose desktop 的 `createDistributable` 任务生成 app-image
-2. 然后使用 wix 的 heat 命令收集 app-image 文件夹里的文件，生成一个 wxs 文件
-3. 编辑 wxs 文件,填充一些产品信息，设置快捷方式
-4. 编译 wxs 文件,生成 wixobj 文件
-5. 链接 wixobj文件 生成 msi 安装包
+- 🚀 **自动依赖管理** - 自动在 `createDistributable` 任务之后执行 WiX 打包流程
+- 🎯 **专业安装包** - 生成符合 Windows 标准的 MSI 安装包
+- 🔧 **高度可配置** - 支持自定义厂商信息、快捷方式、许可证文件等
+- 🛡️ **安全卸载** - 避免误删文件的安全卸载机制
+- 🌍 **多语言支持** - 支持中文快捷方式名称等国际化需求
+- 📦 **完整任务链** - 提供完整的打包流程，从应用镜像到最终安装包
 
+## 解决的问题
 
-现在还只是一个脚本，后续可能会封装成一个插件。
-## 使用方法
-1. 先把`build.gradle.kts`里的 packageName 设置成英文，不设置也可以（因为还要打包 macOS 版），但是需要再写一个 Task 在 `createDistributable` 创建 app-image 之后把文件夹重命名为英语。
-2. 把 `wix.gradle.kts` 复制到项目根目录
-3. 在 `build.gradle.kts` 添加
-    ```kotlin
-      apply(from = "wix.gradle.kts")
-    ```
-4. 设置 `wix.gradle.kts` 中的 manufacturer、shortcutName、licenseFile 和 iconFile 等参数
+Compose Desktop 默认的打包插件存在以下问题：
 
-5. 执行 `light` 任务，就可以生成 msi 安装包了。这个脚本会创建 2 个快捷方式，分别是桌面快捷方式、开始菜单快捷方式。
-6. 这段脚本有 4 个任务，分别是 `harvest`、`editWxs`、`compileWxs`、`light`，可以单独执行，方便调试。
+1. **快捷方式名称限制** - 无法设置独立的快捷方式名称，某些 Windows 用户安装目录不能有中文字符，但需要中文快捷方式
+2. **安全卸载问题** - 卸载时可能误删文件，如果安装到错误目录会删除整个父目录
+3. **自定义程度低** - 缺乏专业的安装包定制选项
 
-## Task 说明
-- `harvest` 依赖 `createDistributable` Task 创建的 app-image 文件夹,然后使用 Wix 的 heat 命令收集 app-image 文件夹里的文件，生成一个 wxs 文件
-- `editWxs` 编辑 wxs 文件,填充一些产品信息，设置快捷键
-- `compileWxs` 编译 wxs 文件,生成 wixobj 文件
-- `light` 链接 wixobj文件 生成 msi 安装包
+本插件通过 WiX 工具集解决了这些问题，提供更专业和安全的打包体验。
 
+## 安装
 
+### 添加插件依赖
 
+在项目的 `build.gradle.kts` 中添加：
 
-
-
-
-使用方法：
-```kts
-// build.gradle.kts
+```kotlin
 plugins {
-    id("io.github.tangshimin.wix-compose") version "0.1.0"
+    id("io.github.tangshimin.wix-compose") version "1.0.0"
 }
+```
 
+### 配置插件
+
+在 `build.gradle.kts` 中添加配置：
+
+```kotlin
 wixCompose {
     manufacturer.set("你的公司名")
     shortcutName.set("应用程序名称")
-    licenseFile.set("license.rtf")
-    iconFile.set("src/main/resources/logo/logo.ico")
+    licenseFile.set("license.rtf")  // 可选，许可证文件路径
+    iconFile.set("src/main/resources/logo/logo.ico")  // 可选，图标文件路径
 }
+```
+
+## 使用方法
+
+### 完整打包流程
+
+执行以下命令生成 MSI 安装包：
+
+```bash
+./gradlew light
+```
+
+这个命令会自动执行完整的打包流程：
+1. `createDistributable` - 生成应用镜像
+2. `harvest` - 使用 WiX heat 工具收集文件
+3. `editWxs` - 编辑 WiX 脚本文件
+4. `compileWxs` - 编译 WiX 脚本
+5. `light` - 生成最终 MSI 安装包
+
+### 单独执行任务
+
+你也可以单独执行各个任务进行调试：
+
+```bash
+# 只生成应用镜像
+./gradlew createDistributable
+
+# 只收集文件生成 WXS 文件
+./gradlew harvest
+
+# 只编辑 WXS 文件
+./gradlew editWxs
+
+# 只编译 WXS 文件
+./gradlew compileWxs
+```
+
+## 任务说明
+
+### 主要任务
+
+- **`harvest`** - 依赖 `createDistributable` 任务，使用 WiX heat 命令收集应用镜像中的文件，生成 WXS 文件
+- **`editWxs`** - 编辑 WXS 文件，填充产品信息，设置快捷方式
+- **`compileWxs`** - 编译 WXS 文件，生成 WIXOBJ 文件
+- **`light`** - 链接 WIXOBJ 文件，生成最终的 MSI 安装包
+
+### 任务依赖关系
 
 ```
+createDistributable (compose 插件)
+    ↓
+harvest (本插件)
+    ↓
+editWxs (本插件)
+    ↓
+compileWxs (本插件)
+    ↓
+light (本插件)
+```
+
+## 配置选项
+
+### 必需配置
+
+- `manufacturer` - 厂商名称
+- `shortcutName` - 快捷方式显示名称
+
+### 可选配置
+
+- `licenseFile` - 许可证文件路径（RTF 格式）
+- `iconFile` - 应用程序图标文件路径（ICO 格式）
+
+## 示例配置
+
+```kotlin
+compose.desktop {
+    application {
+        mainClass = "MainKt"
+        jvmArgs += listOf(
+            "-Dfile.encoding=UTF-8",
+            "-Dstdout.encoding=UTF-8",
+            "-Dstderr.encoding=UTF-8",
+            "-Dsun.stdout.encoding=UTF-8"
+        )
+
+        nativeDistributions {
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi)
+            packageVersion = "1.0.0"
+            packageName = "sample"
+        }
+    }
+}
+
+wixCompose {
+    manufacturer.set("测试公司")
+    shortcutName.set("测试应用")
+}
+```
+
+## 输出文件
+
+- **MSI 安装包**: `build/wix311/sample-1.0.0.msi`
+- **WiX 源文件**: `build/compose/binaries/main/app/sample.wxs`
+- **中间文件**: `build/wix311/sample.wixobj`
+
+## 技术原理
+
+本插件基于以下技术栈：
+
+1. **Compose Desktop** - 生成跨平台桌面应用
+2. **WiX Toolset** - Windows 安装包制作工具
+3. **Gradle Plugin** - 提供自动化构建流程
+
+打包流程：
+1. 使用 Compose Desktop 的 `createDistributable` 任务生成应用镜像
+2. 使用 WiX heat 工具扫描应用镜像目录，生成 WXS 文件
+3. 编辑 WXS 文件，添加产品信息、快捷方式等
+4. 使用 WiX candle 工具编译 WXS 文件为 WIXOBJ 文件
+5. 使用 WiX light 工具链接 WIXOBJ 文件，生成 MSI 安装包
+
+## 系统要求
+
+- **操作系统**: Windows（WiX 工具集仅支持 Windows）
+- **Gradle**: 8.5+
+- **Kotlin**: 2.2.0+
+- **Compose Desktop**: 1.9.0+
+
+## 许可证
+
+本项目采用 Apache License 2.0 许可证。
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 支持
+
+如果在使用过程中遇到问题，请：
+1. 查看本文档
+2. 检查 Gradle 构建日志
+3. 提交 Issue 并提供详细的重现步骤
+
+---
+
+**注意**: 本插件依赖 WiX 工具集，Compose Desktop 在执行 `createDistributable` 任务时会自动下载 WiX 到 `build/wix311` 目录。
