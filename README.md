@@ -34,3 +34,25 @@ compose desktop 插件在执行 `createDistributable` 任务时会自动下载 w
 - `editWxs` 编辑 wxs 文件,填充一些产品信息，设置快捷键
 - `compileWxs` 编译 wxs 文件,生成 wixobj 文件
 - `light` 链接 wixobj文件 生成 msi 安装包
+
+
+
+
+
+
+
+使用方法：
+```kts
+// build.gradle.kts
+plugins {
+    id("io.github.tangshimin.wix-compose") version "0.1.0"
+}
+
+wixCompose {
+    manufacturer.set("你的公司名")
+    shortcutName.set("应用程序名称")
+    licenseFile.set("license.rtf")
+    iconFile.set("src/main/resources/logo/logo.ico")
+}
+
+```
