@@ -22,9 +22,31 @@ Compose Desktop 默认的打包插件存在以下问题：
 
 ## 安装
 
-### 添加插件依赖
+### 方法一：手动构建插件（当前推荐）
+
+由于插件尚未发布到 Maven Central，您需要先手动构建插件：
+
+1. **克隆并构建插件**
+
+```bash
+git clone https://github.com/tangshimin/wix-compose-plugin.git
+cd wix-compose-plugin
+./gradlew publishToMavenLocal
+```
+
+2. **在项目中使用插件**
 
 在项目的 `build.gradle.kts` 中添加：
+
+```kotlin
+plugins {
+    id("io.github.tangshimin.wix-compose") version "1.0.0"
+}
+```
+
+### 方法二：从 Maven Central 安装（待发布）
+
+插件发布后，您可以直接从 Maven Central 使用：
 
 ```kotlin
 plugins {
