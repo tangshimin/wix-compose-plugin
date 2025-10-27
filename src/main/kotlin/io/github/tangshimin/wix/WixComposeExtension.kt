@@ -8,11 +8,13 @@ abstract class WixComposeExtension {
     abstract val iconFile: Property<String>
     abstract val manufacturer: Property<String>
     abstract val shortcutName: Property<String>
+    abstract val cultures: Property<String>
 
     init {
         manufacturer.convention("未知")
         shortcutName.convention("应用程序")
         licenseFile.convention("")
         iconFile.convention("")
+        cultures.convention("zh-CN")
     }
 }

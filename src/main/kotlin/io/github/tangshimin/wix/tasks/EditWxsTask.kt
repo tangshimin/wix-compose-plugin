@@ -27,7 +27,8 @@ abstract class EditWxsTask : DefaultTask() {
             shortcutName = ext.shortcutName.get(),
             iconPath = ext.iconFile.get(),
             licensePath = ext.licenseFile.get(),
-            manufacturer = ext.manufacturer.get()
+            manufacturer = ext.manufacturer.get(),
+            cultures = ext.cultures.get()
         )
     }
 
@@ -35,7 +36,8 @@ abstract class EditWxsTask : DefaultTask() {
         shortcutName: String,
         iconPath: String,
         licensePath: String,
-        manufacturer: String
+        manufacturer: String,
+        cultures: String
     ) {
         val wixFile = project.layout.projectDirectory.dir("build/compose/binaries/main/app/${project.name}.wxs").asFile
 
@@ -48,12 +50,14 @@ abstract class EditWxsTask : DefaultTask() {
 
         // 设置升级码, 用于升级,大版本更新时，可能需要修改这个值
         val upgradeCode = createNameUUID("v1")
+        val languageCode = getLanguageCode(cultures)
         productElement.apply {
             setAttribute("Manufacturer", manufacturer)
-            setAttribute("Codepage", "936")
+            setAttribute("Codepage", getCodePage(cultures))
             setAttribute("Name", shortcutName)
             setAttribute("Version", "${project.version}")
             setAttribute("UpgradeCode", upgradeCode)
+            setAttribute("Language", languageCode)
         }
 
         // 设置 Package 节点
@@ -61,9 +65,19 @@ abstract class EditWxsTask : DefaultTask() {
         packageElement.apply {
             setAttribute("Compressed", "yes")
             setAttribute("InstallerVersion", "200")
-            setAttribute("Languages", "1033")
+            setAttribute("Languages", languageCode)
             setAttribute("Manufacturer", manufacturer)
             setAttribute("Platform", "x64")
+        }
+
+        // 更新现有的 ProductLanguage 属性（如果存在）
+        val properties = productElement.getElementsByTagName("Property")
+        for (i in 0 until properties.length) {
+            val property = properties.item(i) as Element
+            if (property.getAttribute("Id") == "ProductLanguage") {
+                property.setAttribute("Value", languageCode)
+                break
+            }
         }
 
         val targetDirectory = doc.documentElement.getElementsByTagName("Directory").item(0) as Element
@@ -113,7 +127,7 @@ abstract class EditWxsTask : DefaultTask() {
         val uninstallShortcut = shortcutBuilder(
             doc,
             id = "uninstallShortcut",
-            name = "卸载$shortcutName",
+            name = getUninstallShortcutName(shortcutName, cultures),
             directory = "ProgramMenuDir",
             target = "[System64Folder]msiexec.exe",
             arguments = "/x [ProductCode]"
@@ -228,7 +242,7 @@ abstract class EditWxsTask : DefaultTask() {
 
         // MajorUpgrade
         doc.createElement("MajorUpgrade").apply {
-            val errorMessage = "新版的[ProductName]已经安装，如果要安装旧版本，请先把新版本卸载。"
+            val errorMessage = getDowngradeErrorMessage(cultures)
             setAttributeNode(doc.createAttribute("AllowSameVersionUpgrades").also { it.value = "yes" })
             setAttributeNode(doc.createAttribute("DowngradeErrorMessage").also { it.value = errorMessage })
         }.also { productElement.appendChild(it) }
@@ -389,5 +403,77 @@ abstract class EditWxsTask : DefaultTask() {
 
     private fun createNameUUID(str: String): String {
         return "{" + UUID.nameUUIDFromBytes(str.toByteArray(StandardCharsets.UTF_8)).toString().uppercase() + "}"
+    }
+
+    private fun getLanguageCode(cultures: String): String {
+        // 获取第一个文化代码作为主要语言
+        val primaryCulture = cultures.split(",").firstOrNull() ?: "zh-CN"
+
+        // 将文化代码转换为语言ID
+        return when (primaryCulture.lowercase()) {
+            "zh-cn", "zh-hans" -> "2052"  // 简体中文
+            "zh-tw", "zh-hant" -> "1028"  // 繁体中文
+            "en-us" -> "1033"  // 英语(美国)
+            "en-gb" -> "2057"  // 英语(英国)
+            "ja-jp" -> "1041"  // 日语
+            "ko-kr" -> "1042"  // 韩语
+            "fr-fr" -> "1036"  // 法语
+            "de-de" -> "1031"  // 德语
+            "es-es" -> "1034"  // 西班牙语
+            "ru-ru" -> "1049"  // 俄语
+            else -> "1033"  // 默认英语
+        }
+    }
+
+    private fun getCodePage(cultures: String): String {
+        // 获取第一个文化代码作为主要语言
+        val primaryCulture = cultures.split(",").firstOrNull() ?: "zh-CN"
+
+        // 将文化代码转换为代码页
+        return when (primaryCulture.lowercase()) {
+            "zh-cn", "zh-hans" -> "936"   // 简体中文 GB2312
+            "zh-tw", "zh-hant" -> "950"   // 繁体中文 Big5
+            "ja-jp" -> "932"   // 日文 Shift-JIS
+            "ko-kr" -> "949"   // 韩文
+            "ru-ru" -> "1251"  // 西里尔文
+            "ar-sa", "he-il" -> "1256"  // 阿拉伯文/希伯来文
+            "th-th" -> "874"   // 泰文
+            "vi-vn" -> "1258"  // 越南文
+            else -> "1252"  // 默认西欧语言 (英语、法语、德语、西班牙语等)
+        }
+    }
+
+    private fun getUninstallShortcutName(shortcutName: String, cultures: String): String {
+        // 获取第一个文化代码作为主要语言
+        val primaryCulture = cultures.split(",").firstOrNull() ?: "zh-CN"
+
+        // 根据语言环境生成卸载快捷方式名称
+        return when (primaryCulture.lowercase()) {
+            "zh-cn", "zh-hans", "zh-tw", "zh-hant" -> "卸载$shortcutName"  // 中文
+            "ja-jp" -> "アンインストール$shortcutName"  // 日语
+            "ko-kr" -> "제거$shortcutName"  // 韩语
+            "fr-fr" -> "Désinstaller $shortcutName"  // 法语
+            "de-de" -> "Deinstallieren $shortcutName"  // 德语
+            "es-es" -> "Desinstalar $shortcutName"  // 西班牙语
+            "ru-ru" -> "Удалить $shortcutName"  // 俄语
+            else -> "Uninstall $shortcutName"  // 默认英语
+        }
+    }
+
+    private fun getDowngradeErrorMessage(cultures: String): String {
+        // 获取第一个文化代码作为主要语言
+        val primaryCulture = cultures.split(",").firstOrNull() ?: "zh-CN"
+
+        // 根据语言环境生成降级错误消息
+        return when (primaryCulture.lowercase()) {
+            "zh-cn", "zh-hans", "zh-tw", "zh-hant" -> "A newer version of [ProductName] is already installed. If you want to install an older version, please uninstall the newer version first."  // 中文
+            "ja-jp" -> "新しいバージョンの[ProductName]が既にインストールされています。古いバージョンをインストールする場合は、まず新しいバージョンをアンインストールしてください。"  // 日语
+            "ko-kr" -> "[ProductName]의 최신 버전이 이미 설치되어 있습니다. 이전 버전을 설치하려면 먼저 최신 버전을 제거하십시오."  // 韩语
+            "fr-fr" -> "Une version plus récente de [ProductName] est déjà installée. Si vous souhaitez installer une version antérieure, veuillez d'abord désinstaller la version plus récente."  // 法语
+            "de-de" -> "Eine neuere Version von [ProductName] ist bereits installiert. Wenn Sie eine ältere Version installieren möchten, deinstallieren Sie bitte zuerst die neuere Version."  // 德语
+            "es-es" -> "Ya está instalada una versión más reciente de [ProductName]. Si desea instalar una versión anterior, desinstale primero la versión más reciente."  // 西班牙语
+            "ru-ru" -> "Более новая версия [ProductName] уже установлена. Если вы хотите установить более старую версию, сначала удалите более новую версию."  // 俄语
+            else -> "A newer version of [ProductName] is already installed. If you want to install an older version, please uninstall the newer version first."  // 默认英语
+        }
     }
 }

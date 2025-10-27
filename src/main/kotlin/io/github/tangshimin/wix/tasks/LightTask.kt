@@ -13,6 +13,7 @@ abstract class LightTask : DefaultTask() {
     @TaskAction
     fun light() {
         val appDir = project.layout.projectDirectory.dir("build/compose/binaries/main/app/")
+        val ext = extension.get()
 
         var lightFile = project.layout.projectDirectory.file("build/wix311/light.exe").asFile
         if (!lightFile.exists()) {
@@ -22,17 +23,24 @@ abstract class LightTask : DefaultTask() {
         project.exec {
             workingDir(appDir)
             val light = lightFile.absolutePath
-                commandLine(
-                    light,
-                    "-ext",
-                    "WixUIExtension",
-                    "-cultures:zh-CN",
-                    "-spdb",
-                    "-nologo",
-                    "${project.name}.wixobj",
-                    "-o",
-                    "${project.name}-${project.version}.msi")
+            val commandLineArgs = mutableListOf(
+                light,
+                "-ext",
+                "WixUIExtension",
+                "-spdb",
+                "-nologo",
+                "${project.name}.wixobj",
+                "-o",
+                "${project.name}-${project.version}.msi"
+            )
 
+            // 添加 cultures 参数
+            val cultures = ext.cultures.get()
+            if (cultures.isNotEmpty()) {
+                commandLineArgs.add(3, "-cultures:$cultures")  // 在 -spdb 参数之前添加
+            }
+
+            commandLine(commandLineArgs)
         }
     }
 }
