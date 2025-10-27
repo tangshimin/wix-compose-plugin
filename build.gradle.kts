@@ -1,5 +1,4 @@
 plugins {
-    kotlin("jvm") version "2.2.0"
     `kotlin-dsl`
     `java-gradle-plugin`
     `maven-publish`
@@ -32,36 +31,8 @@ gradlePlugin {
 
 publishing {
     publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-
-            pom {
-                name.set("WiX Compose Desktop Plugin")
-                description.set("A Gradle plugin to package Compose Desktop applications using WiX toolset")
-                url.set("https://github.com/tangshimin/wix-package")
-
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set("tangshimin")
-                        name.set("Tang Shimin")
-                        email.set("tang_shimin@qq.com")
-                    }
-                }
-
-                scm {
-                    connection.set("scm:git:git://github.com/tangshimin/wix-package.git")
-                    developerConnection.set("scm:git:ssh://github.com/tangshimin/wix-package.git")
-                    url.set("https://github.com/tangshimin/wix-package")
-                }
-            }
-        }
+        // 使用 java-gradle-plugin 自动生成的 pluginMaven 发布
+        // 不需要手动创建 maven 发布，避免重复
     }
 
     repositories {
@@ -79,11 +50,43 @@ publishing {
     }
 }
 
+// 配置自动生成的 pluginMaven 发布的 POM
+afterEvaluate {
+    publishing.publications.named<MavenPublication>("pluginMaven") {
+        pom {
+            name.set("WiX Compose Desktop Plugin")
+            description.set("A Gradle plugin to package Compose Desktop applications using WiX toolset")
+            url.set("https://github.com/tangshimin/wix-package")
+
+            licenses {
+                license {
+                    name.set("The Apache License, Version 2.0")
+                    url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                }
+            }
+
+            developers {
+                developer {
+                    id.set("tangshimin")
+                    name.set("Tang Shimin")
+                    email.set("tang_shimin@qq.com")
+                }
+            }
+
+            scm {
+                connection.set("scm:git:git://github.com/tangshimin/wix-package.git")
+                developerConnection.set("scm:git:ssh://github.com/tangshimin/wix-package.git")
+                url.set("https://github.com/tangshimin/wix-package")
+            }
+        }
+    }
+}
+
 signing {
     // 只在有密钥配置时才签名
     isRequired = project.hasProperty("signing.keyId")
     if (isRequired) {
-        sign(publishing.publications["maven"])
+        sign(publishing.publications["pluginMaven"])
     }
 }
 

@@ -9,6 +9,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.2.0"
     //
     id("io.github.tangshimin.wix-compose") version "1.0.0"
+    // task-tree
+    id("com.dorongold.task-tree") version "2.1.1"
 }
 
 group = "org.example"
@@ -47,7 +49,7 @@ compose.desktop {
         )
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg)
+            targetFormats(TargetFormat.Msi)
             packageVersion = "1.0.0"
             packageName = "sample"
         }
