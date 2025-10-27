@@ -97,9 +97,12 @@ wixCompose {
 ### 主要任务
 
 - **`harvest`** - 依赖 `createDistributable` 任务，使用 WiX heat 命令收集应用镜像中的文件，生成 WXS 文件
+  - *heat 工具文档: [WiX Heat Tool Documentation](https://wixtoolset.org/documentation/manual/v3/overview/heat.html)*
 - **`editWxs`** - 编辑 WXS 文件，填充产品信息，设置快捷方式
 - **`compileWxs`** - 编译 WXS 文件，生成 WIXOBJ 文件
+  - *candle 工具文档: [WiX Candle Tool Documentation](https://wixtoolset.org/documentation/manual/v3/overview/candle.html)*
 - **`light`** - 链接 WIXOBJ 文件，生成最终的 MSI 安装包
+  - *light 工具文档: [WiX Light Tool Documentation](https://wixtoolset.org/documentation/manual/v3/overview/light.html)*
 
 ### 任务依赖关系
 
@@ -166,6 +169,8 @@ wixCompose {
 
 1. **Compose Desktop** - 生成跨平台桌面应用
 2. **WiX Toolset** - Windows 安装包制作工具
+   - *官方文档: [WiX Toolset v3 Documentation](https://docs.firegiant.com/wix3/)*
+   - *入门教程: [WiX v3 Tutorial](https://docs.firegiant.com/wix/wix3/)*
 3. **Gradle Plugin** - 提供自动化构建流程
 
 打包流程：
