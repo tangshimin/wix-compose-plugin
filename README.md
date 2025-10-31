@@ -15,9 +15,22 @@
 Compose Desktop 默认的打包插件存在以下问题：
 
 1. **快捷方式名称限制** - 无法设置独立的快捷方式名称，某些 Windows 用户安装目录不能有中文字符，但需要中文快捷方式
-     >比如安装目录为 `C:\Program Files\MuJing\MuJing.exe`，但快捷方式名称为 `幕境`。
+    >比如安装目录为 `C:\Program Files\MuJing\MuJing.exe`，但快捷方式名称为 `幕境`。
 2. **安全卸载问题** - 卸载时可能误删文件，如果安装到错误目录会删除整个父目录
     >比如安装时选择了 `D:\Program Files\` 作为安装目录，卸载时会删除整个 `Program Files` 目录，导致严重后果。
+
+> [!TIP]
+> 在 Github Actions 的 Windows 环境打包时，如果程序的名称包含中文字符，可能会出现乱码，导致打包失败。
+> 可以添加一个步骤来设置控制台编码为 UTF-8，避免乱码问题：
+> ```yaml
+>      - name: Set UTF-8 encoding for Windows
+>        if: runner.os == 'Windows'
+>        run: |
+>          # 设置 Gradle 的 JVM 参数，强制使用 UTF-8 编码
+>          # 解决 Windows 环境下中文字符显示为问号的问题
+>          echo "GRADLE_OPTS=-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8" >> $env:GITHUB_ENV
+>
+> ```
 
 ## 安装
 
